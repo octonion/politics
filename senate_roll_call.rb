@@ -13,19 +13,26 @@ print "Congress #{congress_id}, session #{session_id} -"
 
 base_url = "http://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_#{congress_id}_#{session_id}.htm"
 
-agreed = CSV.open("csv/agreed_#{congress_id}_#{session_id}.csv", "w")
+results = CSV.open("csv/roll_call_#{congress_id}_#{session_id}.csv", "w")
 
 header = ["congress_id", "session_id",
           "vote", "vote_url",
           "result",
           "question_description",
-          "reference_issue", "reference_issue_url",
+          "reference_array",
+#          "reference_issue", "reference_issue_url",
           "issue", "issue_url",
           "date"]
 
-agreed << header
+results << header
 
-path = '//td[2][text()="Agreed to"]/..'
+# Use for only "Agreed to"
+
+#path = '//td[2][text()="Agreed to"]/..'
+
+# All results
+
+path = '//*[@id="skip"]/table/tr[position()>1]'
 
 page = agent.get(base_url)
 
@@ -50,12 +57,18 @@ page.parser.xpath(path).each do |tr|
 
     when 2
 
-      a = td.xpath("a")
-      relative_url = a.first.attributes["href"].to_s rescue nil
-      text_url = a.inner_text.gsub("&nbsp;", " ").scrub.strip rescue nil
-      full_url = URI.join(base_url, relative_url).to_s rescue nil
+      refs = []
+      td.xpath("a").each do |a|
+        
+        relative_url = a.attributes["href"].to_s rescue nil
+        text_url = a.inner_text.gsub("&nbsp;", " ").scrub.strip rescue nil
+        full_url = URI.join(base_url, relative_url).to_s rescue nil
 
-      row += [text, text_url, full_url]
+        refs += [[text_url, full_url]]
+
+      end
+
+      row += [text, refs]
       
     else
       
@@ -65,9 +78,9 @@ page.parser.xpath(path).each do |tr|
 
   end
   
-  agreed << row
+  results << row
   found += 1
 end
 
-agreed.close
+results.close
 print " #{found}\n"
