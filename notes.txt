@@ -1,0 +1,1 @@
+//*[@id="skip"]/table/tr[position()>1]
